@@ -1,101 +1,162 @@
-import Image from "next/image";
+'use client'
+import { FC, ReactNode, useEffect, useRef } from "react";
+import { useState } from "react";
+import { evaluate } from "mathjs"
+
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+    const [count, setCount] = useState<string>("0")
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    const numbers: string[] = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "00"];
+    const operators: string[] = ["+", "-", "*", "/"];
+
+
+    const handleGlobalKeyDown = (event: React.KeyboardEvent<HTMLElement>): void => {
+        console.log('Tecla: ', event.key)
+        if (numbers.includes(event.key)) {
+            writeNumbers(String(event.key))
+        }
+        if (operators.includes(event.key)) {
+            writeOperator(` ${event.key} `)
+        }
+        if (event.key === 'Enter') {
+            resolveCalculation()
+        }
+        if (event.key === 'Backspace' || event.key === 'Delete' || event.key === 'Escape') {
+            resetCount()
+        }
+    };
+
+
+    const writeNumbers = (number: string): void => {
+        console.log(count)
+        if (count === 'ERROR' || count === 'Infinity' || count === 'NaN' || count === '-Infinity') {
+            setCount(number)
+            return
+        }
+        if (count.startsWith("0")) {
+            setCount(number)
+            return
+        }
+        setCount((prevCount) => prevCount + number)
+
+        return
+    }
+
+    const writeOperator = (operator: string): void => {
+        if (count === 'ERROR' || count === 'Infinity' || count === 'NaN' || count === '-Infinity') {
+            if (operator === ' - ') {
+                setCount(operator)
+            }
+            return
+        }
+        if (count.startsWith("0")) {
+            if (operator === ' - ') {
+                setCount(operator)
+            }
+            return
+        }
+        if (count[1] === '-' && count.length == 3) {
+            if (operator === ' + ') {
+                setCount('0')
+            }
+            return
+        }
+        if (operators.some((operator) => operator === count[count.length - 2])) {
+            setCount((prevCount: string): string => {
+                const newCount: string = prevCount.slice(0, prevCount.length - 2) + operator
+                return newCount
+            })
+            return
+        }
+        setCount((prevCount) => prevCount + operator)
+        return
+    }
+
+    const resolveCalculation = (): void => {
+        try {
+            setCount(String(evaluate(count)))
+        }
+        catch (err) {
+            if (err instanceof Error && err.message.includes('Unexpected end of expression')) {
+                setCount('ERROR')
+                setTimeout(() => {
+                    setCount('0')
+                }, 1000)
+            }
+        }
+    }
+
+    const resetCount = (): void => {
+        if (count === 'ERROR') {
+            return
+        }
+        setCount('0')
+    }
+
+
+    return (
+        <main className="w-screen h-screen flex justify-center items-center" tabIndex={0} onKeyDown={handleGlobalKeyDown}>
+            <div className="bg-calculator p-4 flex flex-col gap-3 rounded-xl">
+                <Header count={count} />
+                <Botonera numbers={numbers} operators={operators} writeNumbers={writeNumbers} writeOperator={writeOperator} />
+                <div className="flex flex-row justify-between">
+                    <button onClick={resolveCalculation} className="w-80 h-10 bg-green-700 rounded-lg text-3xl hover:bg-green-800 active:bg-green-600">=</button>
+                    <button onClick={resetCount} className="bg-red-600 w-16 rounded-lg text-3xl hover:bg-red-700 active:bg-red-500">C</button>
+                </div>
+            </div>
+        </main>
+    );
+}
+
+interface HeaderProps {
+    count: string
+}
+
+const Header: FC<HeaderProps> = ({ count }) => {
+    const headerRef = useRef<HTMLSpanElement>(null);
+
+
+    useEffect(() => {
+        if (headerRef.current) {
+            headerRef.current.scrollLeft = headerRef.current.scrollWidth // Asigno el ancho del contenedor al scroll
+        }
+    }, [count]);
+
+    return (
+        <div className="w-96 h-20  text-nowrap flex justify-end items-center px-7 py-3 text-4xl bg-slate-500/20 rounded-full max-w-full">
+            <span className="overflow-auto" ref={headerRef}>
+                {count}
+            </span>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
+    )
+}
+
+
+interface BotoneraProps {
+    numbers: string[],
+    operators: string[],
+    writeNumbers: Function,
+    writeOperator: Function
+}
+
+
+const Botonera: FC<BotoneraProps> = ({ numbers, operators, writeNumbers, writeOperator }) => {
+    return (
+        <div className="flex gap-5">
+            <div className="w-80 grid grid-cols-3 gap-3 bg-white/10 p-3 rounded-xl">
+                {numbers.map((number): ReactNode => (
+                    <button key={number} onClick={() => writeNumbers(number)} className=" bg-cyan-700 p-3 rounded-md hover:bg-cyan-800 active:bg-cyan-600 text-3xl">
+                        {number}
+                    </button>
+                ))}
+            </div>
+            <div className="flex flex-col justify-between items-center py-1">
+                {operators.map((operator): ReactNode => (
+                    <button key={operator} onClick={() => writeOperator(` ${operator} `)} className="w-14 h-14 rounded-xl bg-slate-300 text-black text-4xl hover:bg-slate-400 active:bg-slate-200">{operator}</button>
+                )
+                )}
+            </div>
+        </div>
+    )
 }
