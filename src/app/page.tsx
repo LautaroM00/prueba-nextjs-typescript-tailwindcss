@@ -6,13 +6,12 @@ import { evaluate } from "mathjs"
 
 export default function Home() {
     const [count, setCount] = useState<string>("0")
-
     const numbers: string[] = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "00"];
     const operators: string[] = ["+", "-", "*", "/"];
 
 
     const handleGlobalKeyDown = (event: React.KeyboardEvent<HTMLElement>): void => {
-        console.log('Tecla: ', event.key)
+        
         if (numbers.includes(event.key)) {
             writeNumbers(String(event.key))
         }
@@ -29,7 +28,7 @@ export default function Home() {
 
 
     const writeNumbers = (number: string): void => {
-        console.log(count)
+
         if (count === 'ERROR' || count === 'Infinity' || count === 'NaN' || count === '-Infinity') {
             setCount(number)
             return
